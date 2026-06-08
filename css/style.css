@@ -257,6 +257,12 @@ p {
   }
 }
 
+@media (max-width: 576px) {
+  .nav-container {
+    width: calc(100% - 24px);
+  }
+}
+
 /* Hero Section */
 
 .hero-section {
@@ -1091,6 +1097,16 @@ p {
   color: #94a3b8;
   font-size: 0.82rem;
   margin: 0;
+}
+
+.footer-credit {
+  color: var(--brand);
+  font-size: 0.82rem;
+  transition: 0.25s ease;
+}
+
+a {
+  text-decoration: none;
 }
 
 @media (max-width: 991px) {
