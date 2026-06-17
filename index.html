@@ -30,6 +30,19 @@
   </head>
 
   <body>
+<!-- PAGE LOADER -->
+<div class="page-loader" id="pageLoader">
+  <div class="loader-content">
+    <img src="assets/images/blue-logo.png" alt="Bearing House" class="loader-logo">
+
+    <div class="loader-line">
+      <span></span>
+    </div>
+
+    <p>Loading quality parts...</p>
+  </div>
+</div>
+
     <!-- NAVBAR -->
     <header>
       <nav class="navbar navbar-expand-lg fixed-top main-navbar">
@@ -61,6 +74,9 @@
                 <a class="nav-link" href="#about">About Us</a>
               </li>
               <li class="nav-item">
+                <a class="nav-link" href="#gallery">Gallery</a>
+              </li>
+              <li class="nav-item">
                 <a class="nav-link" href="#why-us">Why Choose Us</a>
               </li>
               <li class="nav-item">
@@ -77,6 +93,7 @@
       </nav>
     </header>
 
+  
     <!-- HERO SECTION -->
     <section id="home" class="hero-section">
       <div class="hero-overlay"></div>
@@ -364,6 +381,56 @@
       </div>
     </section>
 
+    <!-- GALLERY SECTION -->
+<section id="gallery" class="gallery-section section-block">
+  <div class="container">
+
+    <div class="section-heading text-center">
+      <span class="section-kicker">Gallery</span>
+      <h2>Explore Bearing House</h2>
+      <p>
+        A quick visual look at our products, shop moments and promotional posters.
+      </p>
+    </div>
+
+    <div class="gallery-filters">
+      <button class="gallery-filter active" data-filter="all">All Photos</button>
+      <button class="gallery-filter" data-filter="posters">Posters</button>
+      <button class="gallery-filter" data-filter="products">Products</button>
+      <button class="gallery-filter" data-filter="shop">Shop</button>
+    </div>
+
+    <div class="gallery-grid">
+
+      <div class="gallery-item" data-category="posters">
+        <img src="assets/images/gallery/poster-1.jpg" alt="Bearing House poster">
+      </div>
+
+      <div class="gallery-item" data-category="products">
+        <img src="assets/images/gallery/poster-2.jpg" alt="Bearing House product">
+      </div>
+
+      <div class="gallery-item" data-category="shop">
+        <img src="assets/images/gallery/poster-3.jpg" alt="Bearing House shop">
+      </div>
+
+      <div class="gallery-item" data-category="products">
+        <img src="assets/images/gallery/poster-4.jpg" alt="Bearing House product">
+      </div>
+
+      <div class="gallery-item" data-category="posters">
+        <img src="assets/images/gallery/poster-5.jpg" alt="Bearing House poster">
+      </div>
+
+      <div class="gallery-item" data-category="shop">
+        <img src="assets/images/gallery/poster-6.jpg" alt="Bearing House shop">
+      </div>
+
+    </div>
+
+  </div>
+</section>
+
     <!-- WHY CHOOSE US -->
     <section id="why-us" class="why-section section-block">
       <div class="container">
@@ -580,5 +647,22 @@
 
     <!-- Custom JS -->
     <script src="js/main.js"></script>
+
+    <!-- GALLERY LIGHTBOX -->
+<div class="gallery-lightbox" id="galleryLightbox">
+  <button type="button" class="lightbox-close" id="lightboxClose">
+    <i class="bi bi-x-lg"></i>
+  </button>
+
+  <button type="button" class="lightbox-nav lightbox-prev" id="lightboxPrev">
+    <i class="bi bi-chevron-left"></i>
+  </button>
+
+  <img src="" alt="Gallery preview" id="lightboxImage">
+
+  <button type="button" class="lightbox-nav lightbox-next" id="lightboxNext">
+    <i class="bi bi-chevron-right"></i>
+  </button>
+</div>
   </body>
 </html>
