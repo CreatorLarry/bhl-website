@@ -3,13 +3,17 @@ const toggler = document.querySelector(".custom-toggler");
 const navbarCollapse = document.querySelector("#mainNavbar");
 const navLinks = document.querySelectorAll(".main-navbar .nav-link");
 
-window.addEventListener("scroll", () => {
-  if (window.scrollY > 40) {
-    navbar.classList.add("scrolled");
-  } else {
-    navbar.classList.remove("scrolled");
-  }
-});
+window.addEventListener(
+  "scroll",
+  () => {
+    if (window.scrollY > 40) {
+      navbar.classList.add("scrolled");
+    } else {
+      navbar.classList.remove("scrolled");
+    }
+  },
+  { passive: true },
+);
 
 toggler.addEventListener("click", () => {
   toggler.classList.toggle("active");
@@ -56,30 +60,91 @@ let startX = 0;
 let scrollLeft = 0;
 let direction = 1; // 1 = move right, -1 = move left
 let userInteracting = false;
+let interactionTimer;
+let sliderAnimationFrame = null;
+let sliderIsVisible = false;
+let lastFrameTime = 0;
+const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 
-function animateSlider() {
-  if (productSlider && !userInteracting) {
+function animateSlider(timestamp) {
+  sliderAnimationFrame = null;
+
+  if (
+    !productSlider ||
+    !sliderIsVisible ||
+    document.hidden ||
+    reducedMotionQuery.matches
+  ) {
+    return;
+  }
+
+  if (!lastFrameTime) {
+    lastFrameTime = timestamp;
+  }
+
+  if (!userInteracting) {
     const maxScroll = productSlider.scrollWidth - productSlider.clientWidth;
+    const elapsed = Math.min(timestamp - lastFrameTime, 32);
+    const nextScroll = productSlider.scrollLeft + direction * elapsed * 0.036;
 
-    productSlider.scrollLeft += direction * 0.6;
-
-    if (productSlider.scrollLeft >= maxScroll - 2) {
+    if (nextScroll >= maxScroll) {
+      productSlider.scrollLeft = maxScroll;
       direction = -1;
-    }
-
-    if (productSlider.scrollLeft <= 2) {
+    } else if (nextScroll <= 0) {
+      productSlider.scrollLeft = 0;
       direction = 1;
+    } else {
+      productSlider.scrollLeft = nextScroll;
     }
   }
 
-  requestAnimationFrame(animateSlider);
+  lastFrameTime = timestamp;
+  sliderAnimationFrame = requestAnimationFrame(animateSlider);
+}
+
+function startSliderAnimation() {
+  if (
+    sliderAnimationFrame !== null ||
+    !sliderIsVisible ||
+    document.hidden ||
+    reducedMotionQuery.matches
+  ) {
+    return;
+  }
+
+  lastFrameTime = 0;
+  sliderAnimationFrame = requestAnimationFrame(animateSlider);
+}
+
+function stopSliderAnimation() {
+  if (sliderAnimationFrame !== null) {
+    cancelAnimationFrame(sliderAnimationFrame);
+    sliderAnimationFrame = null;
+  }
+
+  lastFrameTime = 0;
+}
+
+function beginSliderInteraction() {
+  clearTimeout(interactionTimer);
+  userInteracting = true;
+  stopSliderAnimation();
+}
+
+function endSliderInteraction() {
+  clearTimeout(interactionTimer);
+  interactionTimer = setTimeout(() => {
+    userInteracting = false;
+    startSliderAnimation();
+  }, 1200);
 }
 
 if (productSlider) {
   productSlider.addEventListener("mousedown", (e) => {
+    if (e.button !== 0) return;
+
     isDown = true;
-    userInteracting = true;
-    productSlider.classList.add("active");
+    beginSliderInteraction();
 
     startX = e.pageX - productSlider.offsetLeft;
     scrollLeft = productSlider.scrollLeft;
@@ -98,33 +163,50 @@ if (productSlider) {
 
   productSlider.addEventListener("mouseup", () => {
     isDown = false;
-    productSlider.classList.remove("active");
-
-    setTimeout(() => {
-      userInteracting = false;
-    }, 1200);
+    endSliderInteraction();
   });
 
   productSlider.addEventListener("mouseleave", () => {
+    if (!isDown) return;
+
     isDown = false;
-    productSlider.classList.remove("active");
-
-    setTimeout(() => {
-      userInteracting = false;
-    }, 1200);
+    endSliderInteraction();
   });
 
-  productSlider.addEventListener("touchstart", () => {
-    userInteracting = true;
+  productSlider.addEventListener("touchstart", beginSliderInteraction, {
+    passive: true,
   });
 
-  productSlider.addEventListener("touchend", () => {
-    setTimeout(() => {
-      userInteracting = false;
-    }, 1200);
+  productSlider.addEventListener("touchend", endSliderInteraction);
+  productSlider.addEventListener("touchcancel", endSliderInteraction);
+
+  const sliderObserver = new IntersectionObserver(([entry]) => {
+    sliderIsVisible = entry.isIntersecting;
+
+    if (sliderIsVisible) {
+      startSliderAnimation();
+    } else {
+      stopSliderAnimation();
+    }
   });
 
-  window.addEventListener("load", animateSlider);
+  sliderObserver.observe(productSlider);
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      stopSliderAnimation();
+    } else {
+      startSliderAnimation();
+    }
+  });
+
+  reducedMotionQuery.addEventListener("change", () => {
+    if (reducedMotionQuery.matches) {
+      stopSliderAnimation();
+    } else {
+      startSliderAnimation();
+    }
+  });
 }
 
 /* =========================
@@ -139,6 +221,13 @@ const counterObserver = new IntersectionObserver(
       if (entry.isIntersecting) {
         const counter = entry.target;
         const target = Number(counter.dataset.target);
+
+        if (reducedMotionQuery.matches) {
+          counter.textContent = target;
+          counterObserver.unobserve(counter);
+          return;
+        }
+
         let current = 0;
         const duration = 1600;
         const stepTime = 16;
@@ -146,6 +235,11 @@ const counterObserver = new IntersectionObserver(
         const increment = target / totalSteps;
 
         const updateCounter = () => {
+          if (reducedMotionQuery.matches) {
+            counter.textContent = target;
+            return;
+          }
+
           current += increment;
 
           if (current < target) {
@@ -184,6 +278,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let visibleItems = Array.from(galleryItems);
   let currentIndex = 0;
+  let lastFocusedElement = null;
+  const lightboxControls = [closeBtn, prevBtn, nextBtn];
 
   function updateVisibleItems() {
     visibleItems = Array.from(galleryItems).filter((item) => {
@@ -195,8 +291,12 @@ document.addEventListener("DOMContentLoaded", () => {
     button.addEventListener("click", () => {
       const filterValue = button.getAttribute("data-filter");
 
-      filterButtons.forEach((btn) => btn.classList.remove("active"));
+      filterButtons.forEach((btn) => {
+        btn.classList.remove("active");
+        btn.setAttribute("aria-pressed", "false");
+      });
       button.classList.add("active");
+      button.setAttribute("aria-pressed", "true");
 
       galleryItems.forEach((item) => {
         const category = item.getAttribute("data-category");
@@ -225,14 +325,24 @@ document.addEventListener("DOMContentLoaded", () => {
       lightboxImage.src = img.src;
       lightboxImage.alt = img.alt || "Gallery image";
 
+      lastFocusedElement = item;
       lightbox.classList.add("active");
+      lightbox.setAttribute("aria-hidden", "false");
       document.body.style.overflow = "hidden";
+      closeBtn.focus();
     });
   });
 
   function closeLightbox() {
+    if (!lightbox.classList.contains("active")) return;
+
     lightbox.classList.remove("active");
+    lightbox.setAttribute("aria-hidden", "true");
     document.body.style.overflow = "";
+
+    if (lastFocusedElement) {
+      lastFocusedElement.focus();
+    }
   }
 
   function showImage(index) {
@@ -275,9 +385,36 @@ document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("keydown", (e) => {
     if (!lightbox.classList.contains("active")) return;
 
-    if (e.key === "Escape") closeLightbox();
-    if (e.key === "ArrowRight") showImage(currentIndex + 1);
-    if (e.key === "ArrowLeft") showImage(currentIndex - 1);
+    if (e.key === "Tab") {
+      const firstControl = lightboxControls[0];
+      const lastControl = lightboxControls[lightboxControls.length - 1];
+
+      if (e.shiftKey && document.activeElement === firstControl) {
+        e.preventDefault();
+        lastControl.focus();
+      } else if (!e.shiftKey && document.activeElement === lastControl) {
+        e.preventDefault();
+        firstControl.focus();
+      } else if (!lightboxControls.includes(document.activeElement)) {
+        e.preventDefault();
+        firstControl.focus();
+      }
+    }
+
+    if (e.key === "Escape") {
+      e.preventDefault();
+      closeLightbox();
+    }
+
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      showImage(currentIndex + 1);
+    }
+
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      showImage(currentIndex - 1);
+    }
   });
 });
 
@@ -285,10 +422,17 @@ document.addEventListener("DOMContentLoaded", () => {
    Page Loader
 ========================= */
 
-window.addEventListener("load", () => {
-  const pageLoader = document.getElementById("pageLoader");
+const pageLoader = document.getElementById("pageLoader");
 
-  setTimeout(() => {
-    pageLoader.classList.add("hide");
-  }, 700);
-});
+if (pageLoader) {
+  window.addEventListener(
+    "load",
+    () => {
+      pageLoader.classList.add("hide");
+      pageLoader.addEventListener("transitionend", () => pageLoader.remove(), {
+        once: true,
+      });
+    },
+    { once: true },
+  );
+}
